@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3">
+  <div class="container">
+    <div class="row mt-3">
+      <div class="col mx-auto mb-3">
+        <h2>Top Comments</h2>
+        <p class="text-muted">
+          Ranked by occurrences of <code>lol</code>, <code>haha</code>, <code>lmao</code>, and 🤣/😂 (case-insensitive). Ties = most recent.
+        </p>
+        <hr />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col mx-auto">
+        <ol class="list-group list-group-numbered">
+          {% for r in template_data.reviews %}
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+              <div class="ms-2 me-auto">
+                <div class="fw-bold">
+                  <a href="{% url 'movies.show' id=r.movie.id %}">{{ r.movie.name }}</a>
+                  <span class="text-muted">— by {{ r.user.username }}</span>
+                </div>
+                <div>{{ r.comment }}</div>
+                <small class="text-muted">{{ r.date|date:"Y-m-d H:i" }}</small>
+              </div>
+            </li>
+          {% empty %}
+            <li class="list-group-item">No comments yet.</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
