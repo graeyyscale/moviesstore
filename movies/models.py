@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
+from django.utils import timezone
 
 
 class Movie(models.Model):
@@ -33,3 +35,24 @@ class Review(models.Model):
     def __str__(self):
 
         return str(self.id) + ' - ' + self.movie.name
+    
+
+class MovieRequest(models.Model):
+    """
+    A user's request for a movie to be added to the store.
+    Only the requesting user can see/delete their own requests.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="movie_requests",
+    )
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.name} (by {self.user})"

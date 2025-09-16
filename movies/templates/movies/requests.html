@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container py-4">
+
+  <h2 class="mb-3">Request a Movie</h2>
+
+  {# Flash messages #}
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="post" action="{% url 'movies.requests' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+          {{ form.name }}
+        </div>
+        <div class="mb-3">
+          <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </form>
+    </div>
+  </div>
+
+  <h4 class="mb-2">My Requests <small class="text-muted">({{ my_requests|length }})</small></h4>
+  <div class="list-group">
+    {% for r in my_requests %}
+      <div class="list-group-item">
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1">{{ r.name }}</h5>
+          <small class="text-muted">{{ r.created_at|date:"Y-m-d H:i" }}</small>
+        </div>
+        <p class="mb-2">{{ r.description|linebreaksbr }}</p>
+        <form method="post" action="{% url 'movies.requests' %}" onsubmit="return confirm('Delete this request?');">
+          {% csrf_token %}
+          <input type="hidden" name="delete_id" value="{{ r.id }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+        </form>
+      </div>
+    {% empty %}
+      <div class="list-group-item text-muted">You haven’t requested any movies yet.</div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

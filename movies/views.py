@@ -1,11 +1,10 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review
-from django.contrib.auth.decorators import login_required
 from django.db.models import Value, FloatField
 from django.db.models.functions import Length, Lower, Replace
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Movie, Review, MovieRequest
+from .forms import MovieRequestForm
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 def index(request):
 
     search_term = request.GET.get('search')
@@ -109,6 +108,42 @@ def delete_review(request, id, review_id):
     review.delete()
 
     return redirect('movies.show', id=id)
+
+@login_required
+def movie_requests(request):
+    """
+    Single page where a user can:
+      - submit a new movie request (name + description)
+      - see all of their own requests
+      - delete a request they made
+    """
+    # Handle delete from the same page
+    if request.method == "POST" and "delete_id" in request.POST:
+        obj = get_object_or_404(MovieRequest, pk=request.POST.get("delete_id"), user=request.user)
+        obj.delete()
+        messages.success(request, "Request deleted.")
+        return redirect("movies.requests")
+
+    # Handle create
+    if request.method == "POST":
+        form = MovieRequestForm(request.POST)
+        if form.is_valid():
+            MovieRequest.objects.create(
+                user=request.user,
+                name=form.cleaned_data["name"].strip(),
+                description=form.cleaned_data["description"].strip(),
+            )
+            messages.success(request, "Request submitted. Thanks!")
+            return redirect("movies.requests")
+    else:
+        form = MovieRequestForm()
+
+    my_requests = MovieRequest.objects.filter(user=request.user)
+    return render(
+        request,
+        "movies/requests.html",
+        {"form": form, "my_requests": my_requests},
+    )
 
 
 def top_comments(request):
