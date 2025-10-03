@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container py-4">
+
+  <h2 class="mb-3">Movie Petitions</h2>
+  <p class="text-muted mb-4">Vote for movies you'd like to see added to our catalog!</p>
+
+  {# Flash messages #}
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Create Petition Form #}
+  {% if user.is_authenticated %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Create a New Petition</h5>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'movies.petitions' %}">
+        {% csrf_token %}
+        <input type="hidden" name="create_petition" value="1">
+        <div class="mb-3">
+          <label for="{{ template_data.form.name.id_for_label }}" class="form-label">{{ template_data.form.name.label }}</label>
+          {{ template_data.form.name }}
+        </div>
+        <div class="mb-3">
+          <label for="{{ template_data.form.description.id_for_label }}" class="form-label">{{ template_data.form.description.label }}</label>
+          {{ template_data.form.description }}
+        </div>
+        <button type="submit" class="btn btn-primary">Create Petition</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <strong>Want to create a petition?</strong> <a href="{% url 'accounts.login' %}">Login</a> or <a href="{% url 'accounts.signup' %}">sign up</a> to create and vote on petitions!
+  </div>
+  {% endif %}
+
+  {# Petitions List #}
+  <h4 class="mb-3">Current Petitions <small class="text-muted">({{ template_data.petitions|length }})</small></h4>
+  
+  {% if template_data.petitions %}
+    <div class="row">
+      {% for petition in template_data.petitions %}
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{{ petition.name }}</h5>
+              <p class="card-text text-muted small mb-2">
+                <strong>Created by:</strong> {{ petition.user.username }}<br>
+                <strong>Date:</strong> {{ petition.created_at|date:"M d, Y" }}
+              </p>
+              {% if petition.description %}
+                <p class="card-text flex-grow-1">{{ petition.description|linebreaksbr }}</p>
+              {% endif %}
+              <div class="mt-auto">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="badge bg-primary fs-6">
+                    <i class="fas fa-thumbs-up"></i> {{ petition.vote_count }} vote{{ petition.vote_count|pluralize }}
+                  </span>
+                  {% if user.is_authenticated %}
+                    {% if petition.user_has_voted %}
+                      <span class="text-success small">
+                        <i class="fas fa-check"></i> You voted
+                      </span>
+                    {% else %}
+                      <form method="post" action="{% url 'movies.petitions' %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="vote_petition_id" value="{{ petition.id }}">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                          <i class="fas fa-thumbs-up"></i> Vote
+                        </button>
+                      </form>
+                    {% endif %}
+                  {% else %}
+                    <a href="{% url 'accounts.login' %}" class="btn btn-outline-primary btn-sm">
+                      <i class="fas fa-thumbs-up"></i> Vote
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-5">
+      <div class="text-muted">
+        <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+        <h5>No petitions yet</h5>
+        <p>Be the first to create a petition for a movie you'd like to see added!</p>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

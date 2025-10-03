@@ -1,8 +1,8 @@
-from django.db.models import Value, FloatField
+from django.db.models import Value, FloatField, Count
 from django.db.models.functions import Length, Lower, Replace
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, MovieRequest
-from .forms import MovieRequestForm
+from .models import Movie, Review, MovieRequest, MoviePetition, MoviePetitionVote
+from .forms import MovieRequestForm, MoviePetitionForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 def index(request):
@@ -174,3 +174,60 @@ def top_comments(request):
         'reviews': reviews_qs,
     }
     return render(request, 'movies/top_comments.html', {'template_data': template_data})
+
+
+def movie_petitions(request):
+    """
+    Display all movie petitions with vote counts.
+    Users can create new petitions and vote on existing ones.
+    """
+    # Handle voting
+    if request.method == "POST" and "vote_petition_id" in request.POST:
+        if not request.user.is_authenticated:
+            messages.error(request, "You must be logged in to vote.")
+            return redirect("movies.petitions")
+        
+        petition_id = request.POST.get("vote_petition_id")
+        petition = get_object_or_404(MoviePetition, pk=petition_id)
+        
+        # Check if user already voted
+        if petition.user_has_voted(request.user):
+            messages.warning(request, "You have already voted on this petition.")
+        else:
+            # Create vote
+            MoviePetitionVote.objects.create(user=request.user, petition=petition)
+            messages.success(request, f"Your vote for '{petition.name}' has been recorded!")
+        
+        return redirect("movies.petitions")
+    
+    # Handle petition creation
+    if request.method == "POST" and "create_petition" in request.POST:
+        if not request.user.is_authenticated:
+            messages.error(request, "You must be logged in to create a petition.")
+            return redirect("movies.petitions")
+        
+        form = MoviePetitionForm(request.POST)
+        if form.is_valid():
+            MoviePetition.objects.create(
+                user=request.user,
+                name=form.cleaned_data["name"].strip(),
+                description=form.cleaned_data["description"].strip(),
+            )
+            messages.success(request, "Petition created successfully!")
+            return redirect("movies.petitions")
+    else:
+        form = MoviePetitionForm()
+    
+    # Get all petitions with vote counts and check if current user has voted
+    petitions = MoviePetition.objects.annotate(vote_count=Count('votes')).order_by('-vote_count', '-created_at')
+    
+    # Add user vote status to each petition
+    for petition in petitions:
+        petition.user_has_voted = petition.user_has_voted(request.user)
+    
+    template_data = {
+        'title': 'Movie Petitions',
+        'form': form,
+        'petitions': petitions,
+    }
+    return render(request, 'movies/petitions.html', {'template_data': template_data})

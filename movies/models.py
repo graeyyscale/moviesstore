@@ -56,3 +56,59 @@ class MovieRequest(models.Model):
 
     def __str__(self):
         return f"{self.name} (by {self.user})"
+
+
+class MoviePetition(models.Model):
+    """
+    A petition for a movie to be added to the store.
+    All users can see and vote on petitions.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="movie_petitions",
+    )
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.name} (petition by {self.user})"
+    
+    def get_vote_count(self):
+        """Get the total number of votes for this petition"""
+        return self.votes.count()
+    
+    def user_has_voted(self, user):
+        """Check if a user has already voted on this petition"""
+        if not user.is_authenticated:
+            return False
+        return self.votes.filter(user=user).exists()
+
+
+class MoviePetitionVote(models.Model):
+    """
+    A vote on a movie petition.
+    Each user can vote only once per petition.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="petition_votes",
+    )
+    petition = models.ForeignKey(
+        MoviePetition,
+        on_delete=models.CASCADE,
+        related_name="votes",
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        unique_together = ('user', 'petition')  # Prevent duplicate votes
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.user.username} voted for {self.petition.name}"
